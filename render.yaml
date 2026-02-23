@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: kinokonun
+    runtime: static
+    buildCommand: echo "No build needed"
+    staticPublishPath: ./www
+
+
+
+ 
