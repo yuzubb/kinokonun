@@ -19,8 +19,17 @@
 (function() {
     'use strict';
 
-    // タッチ操作可能な端末のみで有効化する
-    var isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    // タッチ操作可能な端末のみで有効化する。
+    //
+    // 注意: 最新のiPad（iPadOS）はSafariのUser-Agentが
+    // 通常のMac（デスクトップ）と全く同じ文字列を返すため、
+    // User-Agent文字列やnavigator.platformでの判定は当てにならない。
+    // 「実際に何本の指でタッチ操作できるか」を返す
+    // navigator.maxTouchPoints で判定すれば、
+    // 本物のMac/Windows PC（マウスのみ、0本）と
+    // iPad・スマホ（タッチ対応、1本以上）を正しく区別できる。
+    var maxTouchPoints = navigator.maxTouchPoints || navigator.msMaxTouchPoints || 0;
+    var isTouchDevice = maxTouchPoints > 0;
     if (!isTouchDevice) return;
 
     var style = document.createElement('style');
