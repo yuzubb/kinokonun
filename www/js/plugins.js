@@ -18,5 +18,6 @@ var $plugins =
 {"name":"OggOnly","status":true,"description":"音声ファイルの再生にoggファイルのみを使用します。","parameters":{"deleteM4a":"false"}},
 {"name":"stbvorbis","status":false,"description":"","parameters":{}},
 {"name":"stbvorbis_asm","status":false,"description":"","parameters":{}},
-{"name":"CustomizeConfigItem","status":true,"description":"オプション任意項目作成プラグイン","parameters":{"数値項目":"","文字項目":"","スイッチ項目":"[\"{\\\"Name\\\":\\\"ズームスキップ(画面が乱れる方推奨）\\\",\\\"DefaultValue\\\":\\\"false\\\",\\\"SwitchID\\\":\\\"218\\\",\\\"HiddenFlag\\\":\\\"false\\\",\\\"Script\\\":\\\"\\\",\\\"AddPosition\\\":\\\"\\\"}\"]","音量項目":""}}
+{"name":"CustomizeConfigItem","status":true,"description":"オプション任意項目作成プラグイン","parameters":{"数値項目":"","文字項目":"","スイッチ項目":"[\"{\\\"Name\\\":\\\"ズームスキップ(画面が乱れる方推奨）\\\",\\\"DefaultValue\\\":\\\"false\\\",\\\"SwitchID\\\":\\\"218\\\",\\\"HiddenFlag\\\":\\\"false\\\",\\\"Script\\\":\\\"\\\",\\\"AddPosition\\\":\\\"\\\"}\"]","音量項目":""}},
+{"name":"TouchControls","status":true,"description":"スマートフォンで遊べるように、画面上に十字キーとOK/メニューのバーチャルボタンを表示します。","parameters":{}}
 ];
