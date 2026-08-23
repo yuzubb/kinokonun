@@ -145,7 +145,17 @@
     // iOS Safari: Vibration APIは非対応なので、上のswitch要素を
     // ユーザー操作と同じ呼び出しスタック内でクリックし、
     // OS標準のハプティックを代わりに鳴らす。
+    //
+    // オプション画面の「触覚フィードバック(振動)」がOFFの場合は鳴らさない。
+    // (CustomizeConfigItemプラグインで追加した2番目のスイッチ項目 = Boolean2。
+    //  まだ読み込まれていない起動直後は未定義になるため、その場合はON扱いにする)
+    function isHapticEnabled() {
+        if (typeof ConfigManager === 'undefined') return true;
+        return ConfigManager.Boolean2 !== false;
+    }
+
     function triggerHaptic(el) {
+        if (!isHapticEnabled()) return;
         if (navigator.vibrate) {
             try { navigator.vibrate(12); } catch (e) { /* noop */ }
         }
