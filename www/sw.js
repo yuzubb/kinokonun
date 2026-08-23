@@ -19,6 +19,7 @@ const CORE_ASSETS = [
     './js/rpg_sprites.js',
     './js/rpg_windows.js',
     './js/plugins.js',
+    './js/plugins/TouchControls.js',
     './js/main.js',
     './fonts/gamefont.css',
     './icon/icon-192.png',
