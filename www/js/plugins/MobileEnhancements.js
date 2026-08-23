@@ -103,32 +103,102 @@
 
     //=========================================================================
     // 4. SEワンタップミュート（画面左上のスピーカーアイコン）
-    //    Options画面のSE音量設定と連動する。
+    //    Options画面のSE音量設定と連動する。絵文字は使わず、CSSのみで描画する。
     //=========================================================================
+    var seIconStyle = document.createElement('style');
+    seIconStyle.textContent = [
+        '#se-mute-button {',
+        '    position: fixed;',
+        '    top: calc(env(safe-area-inset-top, 0px) + 10px);',
+        '    left: calc(env(safe-area-inset-left, 0px) + 10px);',
+        '    width: 34px;',
+        '    height: 34px;',
+        '    border-radius: 50%;',
+        '    background: rgba(0, 0, 0, 0.55);',
+        '    border: 1px solid rgba(255, 255, 255, 0.35);',
+        '    display: flex;',
+        '    align-items: center;',
+        '    justify-content: center;',
+        '    z-index: 190;',
+        '    user-select: none;',
+        '    -webkit-tap-highlight-color: transparent;',
+        '}',
+        '#se-mute-button .se-icon {',
+        '    position: relative;',
+        '    width: 16px;',
+        '    height: 14px;',
+        '}',
+        '#se-mute-button .se-body {',
+        '    position: absolute;',
+        '    left: 0;',
+        '    top: 4px;',
+        '    width: 6px;',
+        '    height: 6px;',
+        '    background: #fff;',
+        '}',
+        '#se-mute-button .se-cone {',
+        '    position: absolute;',
+        '    left: 5px;',
+        '    top: 0;',
+        '    width: 0;',
+        '    height: 0;',
+        '    border-top: 7px solid transparent;',
+        '    border-bottom: 7px solid transparent;',
+        '    border-left: 6px solid #fff;',
+        '}',
+        '#se-mute-button .se-wave {',
+        '    position: absolute;',
+        '    left: 12px;',
+        '    top: 3px;',
+        '    width: 6px;',
+        '    height: 8px;',
+        '    border-right: 2px solid #fff;',
+        '    border-top: 2px solid #fff;',
+        '    border-bottom: 2px solid #fff;',
+        '    border-radius: 0 6px 6px 0;',
+        '    box-sizing: border-box;',
+        '}',
+        '#se-mute-button .se-mute-slash {',
+        '    position: absolute;',
+        '    left: -1px;',
+        '    top: -1px;',
+        '    width: 20px;',
+        '    height: 16px;',
+        '    display: none;',
+        '}',
+        '#se-mute-button .se-mute-slash::before {',
+        '    content: "";',
+        '    position: absolute;',
+        '    left: 1px;',
+        '    top: 7px;',
+        '    width: 18px;',
+        '    height: 2px;',
+        '    background: #ff8080;',
+        '    transform: rotate(-40deg);',
+        '    transform-origin: left center;',
+        '}',
+        '#se-mute-button.muted .se-wave { display: none; }',
+        '#se-mute-button.muted .se-mute-slash { display: block; }'
+    ].join('\n');
+    document.head.appendChild(seIconStyle);
+
     var seButton = document.createElement('div');
     seButton.id = 'se-mute-button';
-    seButton.style.position = 'fixed';
-    seButton.style.top = 'calc(env(safe-area-inset-top, 0px) + 8px)';
-    seButton.style.left = 'calc(env(safe-area-inset-left, 0px) + 8px)';
-    seButton.style.width = '32px';
-    seButton.style.height = '32px';
-    seButton.style.borderRadius = '50%';
-    seButton.style.background = 'rgba(0, 0, 0, 0.55)';
-    seButton.style.border = '1px solid rgba(255, 255, 255, 0.4)';
-    seButton.style.color = '#fff';
-    seButton.style.fontSize = '15px';
-    seButton.style.display = 'flex';
-    seButton.style.alignItems = 'center';
-    seButton.style.justifyContent = 'center';
-    seButton.style.zIndex = '190';
-    seButton.style.userSelect = 'none';
-    seButton.style.webkitTapHighlightColor = 'transparent';
+
+    var seIconWrap = document.createElement('div');
+    seIconWrap.className = 'se-icon';
+    seIconWrap.innerHTML =
+        '<div class="se-body"></div>' +
+        '<div class="se-cone"></div>' +
+        '<div class="se-wave"></div>' +
+        '<div class="se-mute-slash"></div>';
+    seButton.appendChild(seIconWrap);
 
     var lastSeVolume = 100;
 
     function refreshSeButton() {
         var vol = ConfigManager.seVolume;
-        seButton.textContent = (vol > 0) ? '\uD83D\uDD0A' : '\uD83D\uDD07';
+        seButton.classList.toggle('muted', !(vol > 0));
     }
 
     seButton.addEventListener('pointerup', function(event) {

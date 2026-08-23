@@ -36,9 +36,9 @@
     style.textContent = [
         '#touch-controls {',
         '    position: fixed;',
-        '    left: 0; right: 0; bottom: 0;',
-        '    height: 40vh;',
-        '    max-height: 260px;',
+        '    left: 0; right: 0;',
+        '    bottom: 0;',
+        '    height: clamp(160px, 38vh, 260px);',
         '    pointer-events: none;',
         '    z-index: 200;',
         '    user-select: none;',
@@ -49,18 +49,19 @@
         '    display: flex;',
         '    align-items: center;',
         '    justify-content: center;',
-        '    background: rgba(255, 255, 255, 0.18);',
-        '    border: 2px solid rgba(255, 255, 255, 0.55);',
+        '    background: rgba(255, 255, 255, 0.16);',
+        '    border: 1px solid rgba(255, 255, 255, 0.45);',
         '    border-radius: 50%;',
-        '    color: rgba(255, 255, 255, 0.85);',
+        '    color: rgba(255, 255, 255, 0.9);',
         '    font-family: sans-serif;',
-        '    font-weight: bold;',
+        '    font-weight: 600;',
         '    pointer-events: auto;',
         '    touch-action: none;',
         '    -webkit-tap-highlight-color: transparent;',
+        '    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);',
         '}',
         '.tc-btn.active {',
-        '    background: rgba(255, 255, 255, 0.45);',
+        '    background: rgba(255, 255, 255, 0.4);',
         '}',
         '.tc-haptic-switch {',
         '    position: absolute;',
@@ -69,44 +70,51 @@
         '    opacity: 0.01;',
         '    pointer-events: none;',
         '}',
+        // 十字キー本体。セーフエリア（ホームインジケーター等）を避けて配置する。
         '#tc-dpad {',
         '    position: absolute;',
-        '    left: 6vw;',
-        '    bottom: 8vw;',
-        '    width: 34vw;',
-        '    height: 34vw;',
-        '    max-width: 190px;',
-        '    max-height: 190px;',
+        '    left: calc(env(safe-area-inset-left, 0px) + 18px);',
+        '    bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);',
+        '    width: clamp(130px, 32vw, 190px);',
+        '    height: clamp(130px, 32vw, 190px);',
         '    pointer-events: none;',
         '}',
         '.tc-dpad-btn {',
         '    position: absolute;',
         '    width: 34%;',
         '    height: 34%;',
-        '    font-size: 22px;',
         '}',
         '#tc-up    { top: 0;    left: 33%; }',
         '#tc-down  { bottom: 0; left: 33%; }',
         '#tc-left  { left: 0;   top: 33%; }',
         '#tc-right { right: 0;  top: 33%; }',
+        // 矢印はCSSで描いた三角形（絵文字・記号フォント非依存で機種差が出ない）
+        '.tc-arrow {',
+        '    width: 0;',
+        '    height: 0;',
+        '    border: 8px solid transparent;',
+        '}',
+        '#tc-up .tc-arrow    { border-bottom-color: rgba(255,255,255,0.9); border-top-width: 0; margin-bottom: 2px; }',
+        '#tc-down .tc-arrow  { border-top-color: rgba(255,255,255,0.9); border-bottom-width: 0; margin-top: 2px; }',
+        '#tc-left .tc-arrow  { border-right-color: rgba(255,255,255,0.9); border-left-width: 0; margin-right: 2px; }',
+        '#tc-right .tc-arrow { border-left-color: rgba(255,255,255,0.9); border-right-width: 0; margin-left: 2px; }',
+        // 決定・メニューボタン
         '#tc-actions {',
         '    position: absolute;',
-        '    right: 6vw;',
-        '    bottom: 8vw;',
-        '    width: 34vw;',
-        '    height: 34vw;',
-        '    max-width: 190px;',
-        '    max-height: 190px;',
+        '    right: calc(env(safe-area-inset-right, 0px) + 18px);',
+        '    bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);',
+        '    width: clamp(130px, 32vw, 190px);',
+        '    height: clamp(130px, 32vw, 190px);',
         '    pointer-events: none;',
         '}',
         '#tc-ok {',
         '    position: absolute;',
         '    right: 0;',
         '    bottom: 18%;',
-        '    width: 40%;',
-        '    height: 40%;',
-        '    font-size: 16px;',
-        '    background: rgba(120, 200, 255, 0.25);',
+        '    width: 42%;',
+        '    height: 42%;',
+        '    font-size: clamp(13px, 3.5vw, 16px);',
+        '    background: rgba(120, 200, 255, 0.22);',
         '}',
         '#tc-cancel {',
         '    position: absolute;',
@@ -114,8 +122,8 @@
         '    top: 0;',
         '    width: 40%;',
         '    height: 40%;',
-        '    font-size: 13px;',
-        '    background: rgba(255, 160, 160, 0.25);',
+        '    font-size: clamp(11px, 3vw, 13px);',
+        '    background: rgba(255, 160, 160, 0.22);',
         '}'
     ].join('\n');
     document.head.appendChild(style);
@@ -124,7 +132,10 @@
         var el = document.createElement('div');
         el.id = id;
         el.className = 'tc-btn' + (extraClass ? ' ' + extraClass : '');
-        el.textContent = label;
+
+        if (label) {
+            el.textContent = label;
+        }
 
         // iOS Safari (17以降) 用: <input type="checkbox" switch> は
         // タップでOS標準のハプティックが鳴る、公式にサポートされた要素。
@@ -138,6 +149,14 @@
         el.appendChild(hapticSwitch);
         el._hapticSwitch = hapticSwitch;
 
+        return el;
+    }
+
+    function makeArrowButton(id) {
+        var el = makeButton(id, null, 'tc-dpad-btn');
+        var arrow = document.createElement('div');
+        arrow.className = 'tc-arrow';
+        el.appendChild(arrow);
         return el;
     }
 
@@ -169,10 +188,10 @@
 
     var dpad = document.createElement('div');
     dpad.id = 'tc-dpad';
-    var up = makeButton('tc-up', '\u25B2', 'tc-dpad-btn');
-    var down = makeButton('tc-down', '\u25BC', 'tc-dpad-btn');
-    var left = makeButton('tc-left', '\u25C0', 'tc-dpad-btn');
-    var right = makeButton('tc-right', '\u25B6', 'tc-dpad-btn');
+    var up = makeArrowButton('tc-up');
+    var down = makeArrowButton('tc-down');
+    var left = makeArrowButton('tc-left');
+    var right = makeArrowButton('tc-right');
     dpad.appendChild(up);
     dpad.appendChild(down);
     dpad.appendChild(left);
