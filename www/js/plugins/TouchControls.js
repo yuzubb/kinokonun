@@ -20,16 +20,42 @@
     'use strict';
 
     // タッチ操作可能な端末のみで有効化する。
+    // 1つの判定方法だけに頼らず、複数の手がかりを集めて
+    // 「多数決」でモバイル/タブレットかどうかを判断する。
+    // これにより、どれか1つの判定方法が特定の機種で誤判定しても、
+    // 他の判定でカバーできるようにする。
     //
-    // 注意: 最新のiPad（iPadOS）はSafariのUser-Agentが
-    // 通常のMac（デスクトップ）と全く同じ文字列を返すため、
-    // User-Agent文字列やnavigator.platformでの判定は当てにならない。
-    // 「実際に何本の指でタッチ操作できるか」を返す
-    // navigator.maxTouchPoints で判定すれば、
-    // 本物のMac/Windows PC（マウスのみ、0本）と
-    // iPad・スマホ（タッチ対応、1本以上）を正しく区別できる。
+    // 判定材料:
+    // 1. navigator.maxTouchPoints    … 実際に指でタッチできる本数(必須条件)
+    // 2. (pointer: coarse)           … 主な操作方法が指かどうか
+    //    (タッチパネル付きPCは、主な操作がマウスなのでfalseになる)
+    // 3. (hover: none)               … マウスのような「ホバー」ができない機器か
+    // 4. User-Agent / platform       … Android・iPhone・iPadらしき文字列があるか
+    //    (最新iPadはMacと同じUAを返すため、maxTouchPointsと組み合わせて判定)
+    // 5. 画面の短辺サイズ             … スマホ・タブレットらしい小さめの画面か
     var maxTouchPoints = navigator.maxTouchPoints || navigator.msMaxTouchPoints || 0;
-    var isTouchDevice = maxTouchPoints > 0;
+    var hasTouchCapability = maxTouchPoints > 0;
+
+    var signalPointerCoarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    var signalNoHover = !!(window.matchMedia && window.matchMedia('(hover: none)').matches);
+
+    var ua = navigator.userAgent || '';
+    var uaLooksMobile = /Mobi|Android|iPhone|iPad|iPod|Windows Phone|Silk/i.test(ua);
+    var looksLikeIPadOnMacUA = navigator.platform === 'MacIntel' && maxTouchPoints > 1;
+    var signalUaOrPlatform = uaLooksMobile || looksLikeIPadOnMacUA;
+
+    var shortSide = Math.min(window.screen.width || 0, window.screen.height || 0);
+    var signalSmallScreen = shortSide > 0 && shortSide <= 1280;
+
+    var mobileVotes = 0;
+    if (signalPointerCoarse) mobileVotes++;
+    if (signalNoHover) mobileVotes++;
+    if (signalUaOrPlatform) mobileVotes++;
+    if (signalSmallScreen) mobileVotes++;
+
+    // タッチ可能なことは大前提。そのうえで4つの判定材料のうち
+    // 過半数（3つ以上）が「モバイルらしい」と判断した場合のみ表示する。
+    var isTouchDevice = hasTouchCapability && mobileVotes >= 3;
     if (!isTouchDevice) return;
 
     var style = document.createElement('style');
