@@ -3,14 +3,15 @@
 //=============================================================================
 
 /*:
- * @plugindesc スマートフォンでの操作用に、画面上に十字キーとOK/キャンセルの
- * バーチャルボタンを表示します。
+ * @plugindesc 画面上に十字キーとOK/キャンセルのバーチャルボタンを表示します。
  * @author Claude
  *
  * @help
- * タッチ操作可能な端末（スマートフォン・タブレット）でのみ、
+ * オプション画面の「タッチパネル操作を表示」がONのときだけ、
  * 画面下部に十字キー（移動）とOK/メニューボタンを表示します。
- * PC（マウス・キーボード操作）では表示されません。
+ * デフォルトはOFFで、この設定はセーブデータとは別に
+ * ブラウザ側（localStorage）に保存されるため、
+ * どのセーブファイルを読み込んでも設定が引き継がれます。
  *
  * 十字キーは矢印キー、OKボタンはZキー、
  * メニュー/キャンセルボタンはXキーと同じ入力として扱われます。
@@ -19,33 +20,19 @@
 (function() {
     'use strict';
 
-    // タッチ操作可能な端末のみで有効化する。
-    //
-    // 判定の考え方:
-    // 「タッチパネル付きのWindows PC」は、画面のサイズや
-    // pointer/hoverの挙動だけで判定しようとすると、機種によっては
-    // 誤って「モバイル」と判定されてしまうことがある。
-    // そこで、最も確実な手がかりである
-    // 「User-Agent・platformにAndroid/iPhone/iPadらしき情報があるか」
-    // を必須条件にする。Windows PCはタッチパネルの有無に関わらず、
-    // User-Agentに絶対にこれらの文字列が出てこないため、これだけで
-    // 確実に除外できる。
-    //
-    // (最新iPadはSafariのUser-AgentがMacと同じ文字列になるため、
-    //  代わりに「platformがMacIntelなのにタッチポイントが2本以上」
-    //  という組み合わせで、iPadだけを個別に検出する)
-    var maxTouchPoints = navigator.maxTouchPoints || navigator.msMaxTouchPoints || 0;
-    var hasTouchCapability = maxTouchPoints > 0;
-
-    var ua = navigator.userAgent || '';
-    var uaLooksMobile = /Mobi|Android|iPhone|iPad|iPod|Windows Phone|Silk/i.test(ua);
-    var looksLikeIPadOnMacUA = navigator.platform === 'MacIntel' && maxTouchPoints > 1;
-    var signalUaOrPlatform = uaLooksMobile || looksLikeIPadOnMacUA;
-
-    // タッチ可能 かつ (User-Agent/platformがモバイルらしい) の両方を満たす場合のみ表示。
-    // Windows PCはタッチパネル搭載機でもUA/platformの条件を満たさないため除外される。
-    var isTouchDevice = hasTouchCapability && signalUaOrPlatform;
-    if (!isTouchDevice) return;
+    // 以前は機種を自動判定して表示するかどうかを決めていたが、
+    // 機種によって判定がずれるケースがどうしても残るため、
+    // 「オプション画面で手動にON/OFFする」方式に変更した。
+    // この設定(Boolean6)はCustomizeConfigItemプラグイン経由で
+    // ConfigManagerに保存される。ConfigManagerの保存先は
+    // localStorage（ブラウザに保存される設定情報）であり、
+    // ゲームのセーブデータ本体（$gameSwitchesなど）とは別物のため、
+    // どのセーブファイルをロードしても、この表示設定自体は
+    // 常に同じ状態を保つ。デフォルトはOFF。
+    function isTouchPanelEnabled() {
+        if (typeof ConfigManager === 'undefined') return false;
+        return ConfigManager.Boolean6 === true;
+    }
 
     var style = document.createElement('style');
     style.textContent = [
@@ -58,6 +45,10 @@
         '    z-index: 200;',
         '    user-select: none;',
         '    -webkit-user-select: none;',
+        '    display: none;',
+        '}',
+        '#touch-controls.tc-visible {',
+        '    display: block;',
         '}',
         '.tc-btn {',
         '    position: absolute;',
@@ -139,6 +130,34 @@
         '    height: 40%;',
         '    font-size: clamp(11px, 3vw, 13px);',
         '    background: rgba(255, 160, 160, 0.22);',
+        '}',
+        // 初回だけ出す操作方法のヒント
+        '#tc-hint {',
+        '    position: fixed;',
+        '    left: 50%;',
+        '    bottom: calc(env(safe-area-inset-bottom, 0px) + clamp(170px, 40vh, 270px));',
+        '    transform: translateX(-50%);',
+        '    max-width: min(90vw, 360px);',
+        '    background: rgba(0, 0, 0, 0.8);',
+        '    border: 1px solid rgba(255, 255, 255, 0.4);',
+        '    border-radius: 8px;',
+        '    color: #fff;',
+        '    font-family: sans-serif;',
+        '    font-size: 12px;',
+        '    line-height: 1.6;',
+        '    padding: 8px 12px;',
+        '    z-index: 201;',
+        '    text-align: left;',
+        '    pointer-events: auto;',
+        '    display: none;',
+        '}',
+        '#tc-hint.tc-hint-visible { display: block; }',
+        '#tc-hint .tc-hint-close {',
+        '    margin-top: 6px;',
+        '    text-align: right;',
+        '    text-decoration: underline;',
+        '    font-size: 11px;',
+        '    color: rgba(255,255,255,0.7);',
         '}'
     ].join('\n');
     document.head.appendChild(style);
@@ -222,14 +241,64 @@
     root.appendChild(dpad);
     root.appendChild(actions);
 
+    // 初回だけ表示する操作方法のヒント
+    var hint = document.createElement('div');
+    hint.id = 'tc-hint';
+    var hintText = document.createElement('div');
+    hintText.textContent =
+        '\u3010\u64CD\u4F5C\u65B9\u6CD5\u3011 ' +
+        '\u5341\u5B57\u30AD\u30FC=\u79FB\u52D5\uFF0F' +
+        '\u6C7A\u5B9A=\u78BA\u8A8D\u30FBOK\uFF0F' +
+        '\u30E1\u30CB\u30E5\u30FC=\u30E1\u30CB\u30E5\u30FC\u30FB\u30AD\u30E3\u30F3\u30BB\u30EB';
+    var hintClose = document.createElement('div');
+    hintClose.className = 'tc-hint-close';
+    hintClose.textContent = '\u9589\u3058\u308B';
+    hint.appendChild(hintText);
+    hint.appendChild(hintClose);
+    hintClose.addEventListener('pointerup', function(event) {
+        event.preventDefault();
+        dismissHint();
+    });
+
     function attach() {
         document.body.appendChild(root);
+        document.body.appendChild(hint);
     }
     if (document.body) {
         attach();
     } else {
         document.addEventListener('DOMContentLoaded', attach);
     }
+
+    // オプション「タッチパネル操作を表示」の状態を定期的に確認し、
+    // ON/OFFに応じて表示を切り替える。
+    var HINT_SEEN_KEY = 'kinokonun_touch_hint_seen';
+
+    function showHintIfFirstTime() {
+        var seen = false;
+        try { seen = localStorage.getItem(HINT_SEEN_KEY) === '1'; } catch (e) { /* noop */ }
+        if (!seen) {
+            hint.classList.add('tc-hint-visible');
+        }
+    }
+
+    function dismissHint() {
+        hint.classList.remove('tc-hint-visible');
+        try { localStorage.setItem(HINT_SEEN_KEY, '1'); } catch (e) { /* noop */ }
+    }
+
+    var wasVisible = false;
+    setInterval(function() {
+        var enabled = isTouchPanelEnabled();
+        root.classList.toggle('tc-visible', enabled);
+        if (enabled && !wasVisible) {
+            showHintIfFirstTime();
+        }
+        if (!enabled) {
+            hint.classList.remove('tc-hint-visible');
+        }
+        wasVisible = enabled;
+    }, 500);
 
     // 各ボタンに、押下中は Input._currentState を true にし続け、
     // 離したら false に戻す処理を割り当てる。
