@@ -20,42 +20,31 @@
     'use strict';
 
     // タッチ操作可能な端末のみで有効化する。
-    // 1つの判定方法だけに頼らず、複数の手がかりを集めて
-    // 「多数決」でモバイル/タブレットかどうかを判断する。
-    // これにより、どれか1つの判定方法が特定の機種で誤判定しても、
-    // 他の判定でカバーできるようにする。
     //
-    // 判定材料:
-    // 1. navigator.maxTouchPoints    … 実際に指でタッチできる本数(必須条件)
-    // 2. (pointer: coarse)           … 主な操作方法が指かどうか
-    //    (タッチパネル付きPCは、主な操作がマウスなのでfalseになる)
-    // 3. (hover: none)               … マウスのような「ホバー」ができない機器か
-    // 4. User-Agent / platform       … Android・iPhone・iPadらしき文字列があるか
-    //    (最新iPadはMacと同じUAを返すため、maxTouchPointsと組み合わせて判定)
-    // 5. 画面の短辺サイズ             … スマホ・タブレットらしい小さめの画面か
+    // 判定の考え方:
+    // 「タッチパネル付きのWindows PC」は、画面のサイズや
+    // pointer/hoverの挙動だけで判定しようとすると、機種によっては
+    // 誤って「モバイル」と判定されてしまうことがある。
+    // そこで、最も確実な手がかりである
+    // 「User-Agent・platformにAndroid/iPhone/iPadらしき情報があるか」
+    // を必須条件にする。Windows PCはタッチパネルの有無に関わらず、
+    // User-Agentに絶対にこれらの文字列が出てこないため、これだけで
+    // 確実に除外できる。
+    //
+    // (最新iPadはSafariのUser-AgentがMacと同じ文字列になるため、
+    //  代わりに「platformがMacIntelなのにタッチポイントが2本以上」
+    //  という組み合わせで、iPadだけを個別に検出する)
     var maxTouchPoints = navigator.maxTouchPoints || navigator.msMaxTouchPoints || 0;
     var hasTouchCapability = maxTouchPoints > 0;
-
-    var signalPointerCoarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-    var signalNoHover = !!(window.matchMedia && window.matchMedia('(hover: none)').matches);
 
     var ua = navigator.userAgent || '';
     var uaLooksMobile = /Mobi|Android|iPhone|iPad|iPod|Windows Phone|Silk/i.test(ua);
     var looksLikeIPadOnMacUA = navigator.platform === 'MacIntel' && maxTouchPoints > 1;
     var signalUaOrPlatform = uaLooksMobile || looksLikeIPadOnMacUA;
 
-    var shortSide = Math.min(window.screen.width || 0, window.screen.height || 0);
-    var signalSmallScreen = shortSide > 0 && shortSide <= 1280;
-
-    var mobileVotes = 0;
-    if (signalPointerCoarse) mobileVotes++;
-    if (signalNoHover) mobileVotes++;
-    if (signalUaOrPlatform) mobileVotes++;
-    if (signalSmallScreen) mobileVotes++;
-
-    // タッチ可能なことは大前提。そのうえで4つの判定材料のうち
-    // 過半数（3つ以上）が「モバイルらしい」と判断した場合のみ表示する。
-    var isTouchDevice = hasTouchCapability && mobileVotes >= 3;
+    // タッチ可能 かつ (User-Agent/platformがモバイルらしい) の両方を満たす場合のみ表示。
+    // Windows PCはタッチパネル搭載機でもUA/platformの条件を満たさないため除外される。
+    var isTouchDevice = hasTouchCapability && signalUaOrPlatform;
     if (!isTouchDevice) return;
 
     var style = document.createElement('style');
